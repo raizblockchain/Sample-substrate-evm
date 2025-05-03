@@ -46,6 +46,8 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 fn properties() -> Properties {
 	let mut properties = Properties::new();
 	properties.insert("tokenDecimals".into(), 18.into());
+	properties.insert("tokenSymbol".into(), "SMPL".into());
+	properties.insert("tokenName".into(), "Sample".into());
 	properties.insert("ss58Format".into(), SS58Prefix::get().into());
 	properties
 }
@@ -61,7 +63,7 @@ pub fn development_config(enable_manual_seal: bool) -> ChainSpec {
 		.with_genesis_config_patch(testnet_genesis(
 			// Sudo account (Alith)
 			AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")),
-			// Pre-funded accounts
+			// Pre-funded accounts with increased balances
 			vec![
 				AccountId::from(hex!("f24FF3a9CF04c71Dbc94D0b566f7A27B94566cac")), // Alith
 				AccountId::from(hex!("3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0")), // Baltathar
@@ -118,15 +120,10 @@ fn testnet_genesis(
 	let evm_accounts = {
 		let mut map = BTreeMap::new();
 		map.insert(
-			// H160 address of Alice dev account
-			// Derived from SS58 (42 prefix) address
-			// SS58: 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
-			// hex: 0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d
-			// Using the full hex key, truncating to the first 20 bytes (the first 40 hex chars)
 			H160::from_str("d43593c715fdd31c61141abd04a99fd6822c8558")
 				.expect("internal H160 is valid; qed"),
 			fp_evm::GenesisAccount {
-				balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+				balance: U256::from_str("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 					.expect("internal U256 is valid; qed"),
 				code: Default::default(),
 				nonce: Default::default(),
@@ -134,11 +131,10 @@ fn testnet_genesis(
 			},
 		);
 		map.insert(
-			// H160 address of CI test runner account
 			H160::from_str("6be02d1d3665660d22ff9624b7be0551ee1ac91b")
 				.expect("internal H160 is valid; qed"),
 			fp_evm::GenesisAccount {
-				balance: U256::from_str("0xffffffffffffffffffffffffffffffff")
+				balance: U256::from_str("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 					.expect("internal U256 is valid; qed"),
 				code: Default::default(),
 				nonce: Default::default(),
@@ -146,12 +142,12 @@ fn testnet_genesis(
 			},
 		);
 		map.insert(
-			// H160 address for benchmark usage
 			H160::from_str("1000000000000000000000000000000000000001")
 				.expect("internal H160 is valid; qed"),
 			fp_evm::GenesisAccount {
 				nonce: U256::from(1),
-				balance: U256::from(1_000_000_000_000_000_000_000_000u128),
+				balance: U256::from_str("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+					.expect("internal U256 is valid; qed"),
 				storage: Default::default(),
 				code: vec![0x00],
 			},
@@ -165,7 +161,7 @@ fn testnet_genesis(
 			"balances": endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, 1_000_000 * UNITS))
+				.map(|k| (k, 4000 * UNITS)) // 4000 tokens with 18 decimals
 				.collect::<Vec<_>>()
 		},
 		"aura": { "authorities": initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>() },

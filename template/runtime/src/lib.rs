@@ -210,6 +210,16 @@ parameter_types! {
 	pub BlockLength: frame_system::limits::BlockLength = frame_system::limits::BlockLength
 		::max_with_normal_ratio(MAXIMUM_BLOCK_LENGTH, NORMAL_DISPATCH_RATIO);
 	pub const SS58Prefix: u8 = 42;
+	// Gas configuration
+	pub const GasLimitPovSizeRatio: u64 = 64;
+	pub const GasLimitStorageGrowthRatio: u64 = 10_000;
+	pub BlockGasLimit: U256 = U256::from(u64::MAX);
+	pub WeightPerGas: Weight = Weight::from_parts(1, 0);
+	pub DefaultBaseFeePerGas: U256 = U256::from(1);
+	pub const DefaultElasticity: Permill = Permill::from_percent(0);
+	pub BoundDivision: U256 = U256::from(1);
+	pub FeeMultiplier: Multiplier = Multiplier::one();
+	pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -302,17 +312,13 @@ impl pallet_balances::Config for Runtime {
 	type DoneSlashHandler = ();
 }
 
-parameter_types! {
-	pub FeeMultiplier: Multiplier = Multiplier::one();
-}
-
 impl pallet_transaction_payment::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type OnChargeTransaction = FungibleAdapter<Balances, ()>;
 	type WeightToFee = IdentityFee<Balance>;
 	type LengthToFee = IdentityFee<Balance>;
 	type FeeMultiplierUpdate = ConstFeeMultiplier<FeeMultiplier>;
-	type OperationalFeeMultiplier = ConstU8<5>;
+	type OperationalFeeMultiplier = ConstU8<1>;
 	type WeightInfo = pallet_transaction_payment::weights::SubstrateWeight<Runtime>;
 }
 
@@ -343,14 +349,6 @@ const BLOCK_GAS_LIMIT: u64 = 75_000_000;
 const MAX_POV_SIZE: u64 = 5 * 1024 * 1024;
 /// The maximum storage growth per block in bytes.
 const MAX_STORAGE_GROWTH: u64 = 400 * 1024;
-
-parameter_types! {
-	pub BlockGasLimit: U256 = U256::from(BLOCK_GAS_LIMIT);
-	pub const GasLimitPovSizeRatio: u64 = BLOCK_GAS_LIMIT.saturating_div(MAX_POV_SIZE);
-	pub const GasLimitStorageGrowthRatio: u64 = BLOCK_GAS_LIMIT.saturating_div(MAX_STORAGE_GROWTH);
-	pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
-	pub WeightPerGas: Weight = Weight::from_parts(weight_per_gas(BLOCK_GAS_LIMIT, NORMAL_DISPATCH_RATIO, WEIGHT_MILLISECS_PER_BLOCK), 0);
-}
 
 impl pallet_evm::Config for Runtime {
 	type AccountProvider = pallet_evm::FrameSystemAccountProvider<Self>;
@@ -388,28 +386,20 @@ impl pallet_ethereum::Config for Runtime {
 	type ExtraDataLength = ConstU32<30>;
 }
 
-parameter_types! {
-	pub BoundDivision: U256 = U256::from(1024);
-}
-
 impl pallet_dynamic_fee::Config for Runtime {
 	type MinGasPriceBoundDivisor = BoundDivision;
 }
 
-parameter_types! {
-	pub DefaultBaseFeePerGas: U256 = U256::from(1_000_000_000);
-	pub DefaultElasticity: Permill = Permill::from_parts(125_000);
-}
 pub struct BaseFeeThreshold;
 impl pallet_base_fee::BaseFeeThreshold for BaseFeeThreshold {
 	fn lower() -> Permill {
-		Permill::zero()
+		Permill::from_percent(0) // Minimal lower threshold
 	}
 	fn ideal() -> Permill {
-		Permill::from_parts(500_000)
+		Permill::from_percent(0) // Minimal ideal threshold
 	}
 	fn upper() -> Permill {
-		Permill::from_parts(1_000_000)
+		Permill::from_percent(0) // Minimal upper threshold
 	}
 }
 impl pallet_base_fee::Config for Runtime {
