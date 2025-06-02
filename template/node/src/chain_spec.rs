@@ -10,7 +10,7 @@ use sp_core::ecdsa;
 use sp_core::{Pair, Public, H160, U256};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 // Frontier
-use frontier_template_runtime::{AccountId, Balance, SS58Prefix, Signature, WASM_BINARY};
+use frontier_template_runtime::{AccountId, Balance, EthereumConfig, SS58Prefix, Signature, WASM_BINARY};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -45,14 +45,16 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 
 fn properties() -> Properties {
 	let mut properties = Properties::new();
-	properties.insert("tokenDecimals".into(), 18.into());
-	properties.insert("tokenSymbol".into(), "SMPL".into());
-	properties.insert("tokenName".into(), "Sample".into());
+	properties.insert("tokenDecimals".into(), 10.into());
+	properties.insert("tokenSymbol".into(), "STC ( TESTNET )".into());
+	properties.insert("tokenName".into(), "Star Coin".into());
 	properties.insert("ss58Format".into(), SS58Prefix::get().into());
 	properties
 }
 
-const UNITS: Balance = 1_000_000_000_000_000_000;
+// const UNITS: Balance = 1_000_000_000_000_000_000;
+const UNITS: Balance = 10_000_000_000;
+
 
 pub fn development_config(enable_manual_seal: bool) -> ChainSpec {
 	ChainSpec::builder(WASM_BINARY.expect("WASM not available"), Default::default())
@@ -103,7 +105,7 @@ pub fn local_testnet_config() -> ChainSpec {
 				authority_keys_from_seed("Alice"),
 				authority_keys_from_seed("Bob"),
 			],
-			42,
+			SS58Prefix::get() as u64,
 			false,
 		))
 		.build()
@@ -161,13 +163,16 @@ fn testnet_genesis(
 			"balances": endowed_accounts
 				.iter()
 				.cloned()
-				.map(|k| (k, 4000 * UNITS)) // 4000 tokens with 18 decimals
+				.map(|k| (k, 1 * UNITS)) // 1 tokens with 10 decimals
 				.collect::<Vec<_>>()
 		},
 		"aura": { "authorities": initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>() },
 		"grandpa": { "authorities": initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect::<Vec<_>>() },
 		"evmChainId": { "chainId": chain_id },
 		"evm": { "accounts": evm_accounts },
+		"ethereum": EthereumConfig {
+			_marker: std::marker::PhantomData,
+		},
 		"manualSeal": { "enable": enable_manual_seal }
 	})
 }
