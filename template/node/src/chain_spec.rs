@@ -10,7 +10,9 @@ use sp_core::ecdsa;
 use sp_core::{Pair, Public, H160, U256};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 // Frontier
-use frontier_template_runtime::{AccountId, Balance, EthereumConfig, SS58Prefix, Signature, WASM_BINARY};
+use frontier_template_runtime::{
+	AccountId, Balance, EthereumConfig, opaque::SessionKeys, SS58Prefix, Signature, WASM_BINARY
+};
 
 // The URL for the telemetry server.
 // const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
@@ -38,9 +40,18 @@ where
 	AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-/// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-	(get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+/// Generate authority keys from seed.
+pub fn authority_keys_from_seed(s: &str) -> (AccountId, AuraId, GrandpaId) {
+	(
+		get_account_id_from_seed::<ecdsa::Public>(s), // Ethereum-style account
+		get_from_seed::<AuraId>(s),                   // SR25519 for Aura
+		get_from_seed::<GrandpaId>(s),                // Ed25519 for Grandpa
+	)
+}
+
+/// Generate session keys from individual keys.
+pub fn session_keys(aura: AuraId, grandpa: GrandpaId) -> SessionKeys {
+	SessionKeys { aura, grandpa }
 }
 
 fn properties() -> Properties {
@@ -54,7 +65,6 @@ fn properties() -> Properties {
 
 // const UNITS: Balance = 1_000_000_000_000_000_000;
 const UNITS: Balance = 10_000_000_000;
-
 
 pub fn development_config(enable_manual_seal: bool) -> ChainSpec {
 	ChainSpec::builder(WASM_BINARY.expect("WASM not available"), Default::default())
@@ -115,7 +125,7 @@ pub fn local_testnet_config() -> ChainSpec {
 fn testnet_genesis(
 	sudo_key: AccountId,
 	endowed_accounts: Vec<AccountId>,
-	initial_authorities: Vec<(AuraId, GrandpaId)>,
+	initial_authorities: Vec<(AccountId, AuraId, GrandpaId)>,
 	chain_id: u64,
 	enable_manual_seal: bool,
 ) -> serde_json::Value {
@@ -166,8 +176,18 @@ fn testnet_genesis(
 				.map(|k| (k, 1 * UNITS)) // 1 tokens with 10 decimals
 				.collect::<Vec<_>>()
 		},
-		"aura": { "authorities": initial_authorities.iter().map(|x| (x.0.clone())).collect::<Vec<_>>() },
-		"grandpa": { "authorities": initial_authorities.iter().map(|x| (x.1.clone(), 1)).collect::<Vec<_>>() },
+		"session": {
+			"keys": initial_authorities
+				.iter()
+				.map(|(account, aura, grandpa)| {
+					(
+						account.clone(), // account id
+						account.clone(), // validator id
+						session_keys(aura.clone(), grandpa.clone()),
+					)
+				})
+				.collect::<Vec<_>>()
+		},
 		"evmChainId": { "chainId": chain_id },
 		"evm": { "accounts": evm_accounts },
 		"ethereum": EthereumConfig {

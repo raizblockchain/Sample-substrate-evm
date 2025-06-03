@@ -222,7 +222,7 @@ parameter_types! {
 	pub FeeMultiplier: Multiplier = Multiplier::one();
 	pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
 	// Session configuration
-	pub const Period: u32 = 6 * HOURS;
+	pub const Period: u32 = 6 * MINUTES;
 	pub const Offset: u32 = 0;
 }
 
@@ -609,6 +609,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_sudo, Sudo]
 		[pallet_evm, EVM]
+		[pallet_session, Session]
 	);
 }
 
