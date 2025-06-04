@@ -27,6 +27,7 @@ use sp_runtime::{
 	traits::{
 		BlakeTwo256, Block as BlockT, DispatchInfoOf, Dispatchable, Get, IdentifyAccount,
 		IdentityLookup, NumberFor, One, PostDispatchInfoOf, UniqueSaturatedInto, Verify,
+		Convert, OpaqueKeys,
 	},
 	transaction_validity::{TransactionSource, TransactionValidity, TransactionValidityError},
 	ApplyExtrinsicResult, ConsensusEngineId, ExtrinsicInclusionMode, Perbill, Permill,
@@ -220,6 +221,9 @@ parameter_types! {
 	pub BoundDivision: U256 = U256::from(1);
 	pub FeeMultiplier: Multiplier = Multiplier::one();
 	pub PrecompilesValue: FrontierPrecompiles<Runtime> = FrontierPrecompiles::<_>::new();
+	// Session configuration
+	pub const Period: u32 = 6 * MINUTES;
+	pub const Offset: u32 = 0;
 }
 
 // Configure FRAME pallets to include in runtime.
@@ -257,7 +261,7 @@ impl frame_system::Config for Runtime {
 impl pallet_aura::Config for Runtime {
 	type AuthorityId = AuraId;
 	type MaxAuthorities = ConstU32<32>;
-	type DisabledValidators = ();
+	type DisabledValidators = Session;
 	type AllowMultipleBlocksPerSlot = ConstBool<false>;
 	type SlotDuration = pallet_aura::MinimumPeriodTimesTwo<Runtime>;
 }
@@ -270,6 +274,31 @@ impl pallet_grandpa::Config for Runtime {
 	type MaxSetIdSessionEntries = ConstU64<0>;
 	type KeyOwnerProof = sp_core::Void;
 	type EquivocationReportSystem = ();
+}
+
+pub struct IdentityAsOption;
+impl Convert<AccountId, Option<AccountId>> for IdentityAsOption {
+	fn convert(a: AccountId) -> Option<AccountId> {
+		Some(a)
+	}
+}
+
+
+impl pallet_session::Config for Runtime {
+	type ValidatorId = AccountId;
+	type ValidatorIdOf = IdentityAsOption;
+	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+	type SessionManager = ();
+	type SessionHandler = <opaque::SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+	type Keys = opaque::SessionKeys;
+	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+	type RuntimeEvent = RuntimeEvent;
+}
+
+impl pallet_authorship::Config for Runtime {
+	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
+	type EventHandler = ();
 }
 
 parameter_types! {
@@ -475,20 +504,26 @@ mod runtime {
 
 	#[runtime::pallet_index(6)]
 	pub type Sudo = pallet_sudo;
-
+	
 	#[runtime::pallet_index(7)]
-	pub type Ethereum = pallet_ethereum;
+	pub type Authorship = pallet_authorship;
 
 	#[runtime::pallet_index(8)]
-	pub type EVM = pallet_evm;
+	pub type Session = pallet_session;
 
 	#[runtime::pallet_index(9)]
-	pub type EVMChainId = pallet_evm_chain_id;
+	pub type Ethereum = pallet_ethereum;
 
 	#[runtime::pallet_index(10)]
-	pub type BaseFee = pallet_base_fee;
+	pub type EVM = pallet_evm;
 
 	#[runtime::pallet_index(11)]
+	pub type EVMChainId = pallet_evm_chain_id;
+
+	#[runtime::pallet_index(12)]
+	pub type BaseFee = pallet_base_fee;
+
+	#[runtime::pallet_index(13)]
 	pub type ManualSeal = pallet_manual_seal;
 }
 
@@ -582,6 +617,7 @@ mod benches {
 		[pallet_timestamp, Timestamp]
 		[pallet_sudo, Sudo]
 		[pallet_evm, EVM]
+		[pallet_session, Session]
 	);
 }
 
