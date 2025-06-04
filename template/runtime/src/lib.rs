@@ -296,6 +296,11 @@ impl pallet_session::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 }
 
+impl pallet_authorship::Config for Runtime {
+	type FindAuthor = pallet_session::FindAccountFromAuthorIndex<Self, Aura>;
+	type EventHandler = ();
+}
+
 parameter_types! {
 	pub storage EnableManualSeal: bool = false;
 }
@@ -499,23 +504,26 @@ mod runtime {
 
 	#[runtime::pallet_index(6)]
 	pub type Sudo = pallet_sudo;
-
+	
 	#[runtime::pallet_index(7)]
-	pub type Session = pallet_session;
+	pub type Authorship = pallet_authorship;
 
 	#[runtime::pallet_index(8)]
-	pub type Ethereum = pallet_ethereum;
+	pub type Session = pallet_session;
 
 	#[runtime::pallet_index(9)]
-	pub type EVM = pallet_evm;
+	pub type Ethereum = pallet_ethereum;
 
 	#[runtime::pallet_index(10)]
-	pub type EVMChainId = pallet_evm_chain_id;
+	pub type EVM = pallet_evm;
 
 	#[runtime::pallet_index(11)]
-	pub type BaseFee = pallet_base_fee;
+	pub type EVMChainId = pallet_evm_chain_id;
 
 	#[runtime::pallet_index(12)]
+	pub type BaseFee = pallet_base_fee;
+
+	#[runtime::pallet_index(13)]
 	pub type ManualSeal = pallet_manual_seal;
 }
 

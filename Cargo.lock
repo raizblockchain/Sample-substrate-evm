@@ -3517,6 +3517,7 @@ dependencies = [
  "frame-system-benchmarking",
  "frame-system-rpc-runtime-api",
  "pallet-aura",
+ "pallet-authorship",
  "pallet-balances",
  "pallet-base-fee",
  "pallet-dynamic-fee",
